@@ -76,6 +76,7 @@ type CmdData struct {
 	InsecureRegistry      *bool
 	SkipTlsVerifyRegistry *bool
 	DryRun                *bool
+	DisableDeterminism    *bool
 
 	WithoutKube *bool
 
@@ -138,6 +139,11 @@ func SetupConfigTemplatesDir(cmdData *CmdData, cmd *cobra.Command) {
 func SetupTmpDir(cmdData *CmdData, cmd *cobra.Command) {
 	cmdData.TmpDir = new(string)
 	cmd.Flags().StringVarP(cmdData.TmpDir, "tmp-dir", "", "", "Use specified dir to store tmp files and dirs (default $WERF_TMP_DIR or system tmp dir)")
+}
+
+func SetupDisableDeterminism(cmdData *CmdData, cmd *cobra.Command) {
+	cmdData.DisableDeterminism = new(bool)
+	cmd.Flags().BoolVarP(cmdData.DisableDeterminism, "disable-determinism", "", GetBoolEnvironmentDefaultFalse("WERF_WITHOUT_KUBE"), "Disable werf deterministic mode (more info https://werf.io/documentation/advanced/configuration/determinism.html, default $WERF_DISABLE_DETERMINISM)")
 }
 
 func SetupHomeDir(cmdData *CmdData, cmd *cobra.Command) {
@@ -842,7 +848,7 @@ func GetSecondaryStagesStorageList(stagesStorage storage.StagesStorage, containe
 	return res, nil
 }
 
-func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, logRenderedFilePath bool) (*config.WerfConfig, error) {
+func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
 	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, false)
 	if err != nil {
 		return nil, err
@@ -850,13 +856,13 @@ func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdD
 
 	if werfConfigPath != "" {
 		werfConfigTemplatesDir := GetWerfConfigTemplatesDir(projectDir, cmdData)
-		return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, logRenderedFilePath)
+		return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, opts)
 	}
 
 	return nil, nil
 }
 
-func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, logRenderedFilePath bool) (*config.WerfConfig, error) {
+func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
 	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, true)
 	if err != nil {
 		return nil, err
@@ -864,7 +870,7 @@ func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdD
 
 	werfConfigTemplatesDir := GetWerfConfigTemplatesDir(projectDir, cmdData)
 
-	return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, logRenderedFilePath)
+	return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, opts)
 }
 
 func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool) (string, error) {

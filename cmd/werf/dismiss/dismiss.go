@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/werf/werf/pkg/config"
 	"github.com/werf/werf/pkg/deploy/helm"
 	cmd_helm "helm.sh/helm/v3/cmd/helm"
 	"helm.sh/helm/v3/pkg/action"
@@ -68,6 +69,7 @@ Read more info about Helm Release name, Kubernetes Namespace and how to change i
 	}
 
 	common.SetupTmpDir(&commonCmdData, cmd)
+	common.SetupDisableDeterminism(&commonCmdData, cmd)
 	common.SetupConfigPath(&commonCmdData, cmd)
 	common.SetupConfigTemplatesDir(&commonCmdData, cmd)
 	common.SetupHomeDir(&commonCmdData, cmd)
@@ -130,7 +132,7 @@ func runDismiss() error {
 
 	common.ProcessLogProjectDir(&commonCmdData, projectDir)
 
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, true)
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}

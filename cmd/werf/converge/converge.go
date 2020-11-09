@@ -18,6 +18,7 @@ import (
 
 	"github.com/werf/werf/cmd/werf/common"
 	"github.com/werf/werf/pkg/build"
+	"github.com/werf/werf/pkg/config"
 	"github.com/werf/werf/pkg/container_runtime"
 	"github.com/werf/werf/pkg/deploy"
 	"github.com/werf/werf/pkg/deploy/helm"
@@ -75,6 +76,7 @@ werf converge --repo registry.mydomain.com/web --env production`,
 	}
 
 	common.SetupDir(&commonCmdData, cmd)
+	common.SetupDisableDeterminism(&commonCmdData, cmd)
 	common.SetupConfigPath(&commonCmdData, cmd)
 	common.SetupConfigTemplatesDir(&commonCmdData, cmd)
 	common.SetupTmpDir(&commonCmdData, cmd)
@@ -214,7 +216,7 @@ func runMain(ctx context.Context) error {
 }
 
 func run(ctx context.Context, projectDir, chartDir string) error {
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, true)
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}

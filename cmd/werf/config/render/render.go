@@ -40,11 +40,12 @@ func NewCmd() *cobra.Command {
 
 			werfConfigTemplatesDir := common.GetWerfConfigTemplatesDir(projectDir, &commonCmdData)
 
-			return config.RenderWerfConfig(common.BackgroundContext(), werfConfigPath, werfConfigTemplatesDir, args)
+			return config.RenderWerfConfig(common.BackgroundContext(), werfConfigPath, werfConfigTemplatesDir, args, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism})
 		},
 	}
 
 	common.SetupDir(&commonCmdData, cmd)
+	common.SetupDisableDeterminism(&commonCmdData, cmd)
 	common.SetupConfigPath(&commonCmdData, cmd)
 	common.SetupConfigTemplatesDir(&commonCmdData, cmd)
 	common.SetupTmpDir(&commonCmdData, cmd)

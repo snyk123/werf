@@ -11,6 +11,7 @@ import (
 	"github.com/werf/werf/cmd/werf/common"
 	helm_common "github.com/werf/werf/cmd/werf/helm/common"
 	"github.com/werf/werf/pkg/build"
+	"github.com/werf/werf/pkg/config"
 	"github.com/werf/werf/pkg/container_runtime"
 	"github.com/werf/werf/pkg/deploy/werf_chart"
 	"github.com/werf/werf/pkg/docker"
@@ -47,6 +48,7 @@ These values includes project name, docker images ids and other`),
 	}
 
 	common.SetupDir(&commonCmdData, cmd)
+	common.SetupDisableDeterminism(&commonCmdData, cmd)
 	common.SetupConfigPath(&commonCmdData, cmd)
 	common.SetupConfigTemplatesDir(&commonCmdData, cmd)
 	common.SetupTmpDir(&commonCmdData, cmd)
@@ -117,7 +119,7 @@ func runGetServiceValues() error {
 		return fmt.Errorf("getting project dir failed: %s", err)
 	}
 
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, false)
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}

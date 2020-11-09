@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/werf/werf/pkg/config"
 	"github.com/werf/werf/pkg/storage"
 
 	"github.com/werf/werf/pkg/deploy/helm"
@@ -75,6 +76,7 @@ func NewCmd() *cobra.Command {
 	}
 
 	common.SetupDir(&commonCmdData, cmd)
+	common.SetupDisableDeterminism(&commonCmdData, cmd)
 	common.SetupConfigPath(&commonCmdData, cmd)
 	common.SetupConfigTemplatesDir(&commonCmdData, cmd)
 	common.SetupTmpDir(&commonCmdData, cmd)
@@ -176,7 +178,7 @@ func runRender() error {
 
 	common.ProcessLogProjectDir(&commonCmdData, projectDir)
 
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, true)
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}

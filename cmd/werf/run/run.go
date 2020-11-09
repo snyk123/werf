@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/werf/werf/pkg/config"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/spf13/cobra"
@@ -103,6 +105,7 @@ func NewCmd() *cobra.Command {
 	}
 
 	common.SetupDir(&commonCmdData, cmd)
+	common.SetupDisableDeterminism(&commonCmdData, cmd)
 	common.SetupConfigPath(&commonCmdData, cmd)
 	common.SetupConfigTemplatesDir(&commonCmdData, cmd)
 	common.SetupTmpDir(&commonCmdData, cmd)
@@ -295,7 +298,7 @@ func runMain() error {
 }
 
 func run(ctx context.Context, projectDir string) error {
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, false)
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}

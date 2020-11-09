@@ -26,14 +26,19 @@ import (
 	"github.com/werf/werf/pkg/util"
 )
 
-func RenderWerfConfig(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string, imagesToProcess []string) error {
-	werfConfig, err := GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, false)
+type WerfConfigOptions struct {
+	LogRenderedFilePath bool
+	DisableDeterminism  bool
+}
+
+func RenderWerfConfig(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string, imagesToProcess []string, opts WerfConfigOptions) error {
+	werfConfig, err := GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, opts)
 	if err != nil {
 		return err
 	}
 
 	if len(imagesToProcess) == 0 {
-		werfConfigRenderContent, err := parseWerfConfigYaml(ctx, werfConfigPath, werfConfigTemplatesDir)
+		werfConfigRenderContent, err := parseWerfConfigYaml(ctx, werfConfigPath, werfConfigTemplatesDir, opts.DisableDeterminism)
 		if err != nil {
 			return fmt.Errorf("cannot parse config: %s", err)
 		}
@@ -62,8 +67,8 @@ func RenderWerfConfig(ctx context.Context, werfConfigPath, werfConfigTemplatesDi
 	return nil
 }
 
-func GetWerfConfig(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string, logRenderedFilePath bool) (*WerfConfig, error) {
-	werfConfigRenderContent, err := parseWerfConfigYaml(ctx, werfConfigPath, werfConfigTemplatesDir)
+func GetWerfConfig(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string, opts WerfConfigOptions) (*WerfConfig, error) {
+	werfConfigRenderContent, err := parseWerfConfigYaml(ctx, werfConfigPath, werfConfigTemplatesDir, opts.DisableDeterminism)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse config: %s", err)
 	}
@@ -73,7 +78,7 @@ func GetWerfConfig(ctx context.Context, werfConfigPath, werfConfigTemplatesDir s
 		return nil, err
 	}
 
-	if logRenderedFilePath {
+	if opts.LogRenderedFilePath {
 		logboek.Context(ctx).LogF("Using werf config render file: %s\n", werfConfigRenderPath)
 	}
 
@@ -203,14 +208,16 @@ func splitByDocs(werfConfigRenderContent string, werfConfigRenderPath string) ([
 	return docs, nil
 }
 
-func parseWerfConfigYaml(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string) (string, error) {
+func parseWerfConfigYaml(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string, disableDeterminism bool) (string, error) {
+	// FIXME: read werf config from the git
+
 	data, err := ioutil.ReadFile(werfConfigPath)
 	if err != nil {
 		return "", err
 	}
 
 	tmpl := template.New("werfConfig")
-	tmpl.Funcs(funcMap(tmpl))
+	tmpl.Funcs(funcMap(tmpl, disableDeterminism))
 
 	werfConfigsTemplates, err := getWerfConfigTemplates(werfConfigTemplatesDir)
 	if err != nil {
@@ -239,8 +246,16 @@ func parseWerfConfigYaml(ctx context.Context, werfConfigPath, werfConfigTemplate
 		return "", err
 	}
 
-	files := files{ctx: ctx, ProjectDir: filepath.Dir(werfConfigPath)}
-	config, err := executeTemplate(tmpl, "werfConfig", map[string]interface{}{"Files": files})
+	var templateData map[string]interface{}
+	if disableDeterminism {
+		files := files{ctx: ctx, ProjectDir: filepath.Dir(werfConfigPath)}
+		templateData = make(map[string]interface{})
+		templateData["Files"] = files
+	} else {
+		// FIXME: read files only from the git
+	}
+
+	config, err := executeTemplate(tmpl, "werfConfig", templateData)
 
 	return config, err
 }
@@ -285,7 +300,7 @@ func getWerfConfigTemplates(path string) ([]string, error) {
 	return templates, nil
 }
 
-func funcMap(tmpl *template.Template) template.FuncMap {
+func funcMap(tmpl *template.Template, disableDeterminism bool) template.FuncMap {
 	funcMap := sprig.TxtFuncMap()
 	funcMap["include"] = func(name string, data interface{}) (string, error) {
 		return executeTemplate(tmpl, name, data)
@@ -298,6 +313,12 @@ func funcMap(tmpl *template.Template) template.FuncMap {
 
 		return executeTemplate(tmpl, templateName, data)
 	}
+
+	if !disableDeterminism {
+		delete(funcMap, "env")
+		delete(funcMap, "expandenv")
+	}
+
 	return funcMap
 }
 

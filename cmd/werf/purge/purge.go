@@ -9,6 +9,7 @@ import (
 
 	"github.com/werf/werf/cmd/werf/common"
 	"github.com/werf/werf/pkg/cleaning"
+	"github.com/werf/werf/pkg/config"
 	"github.com/werf/werf/pkg/container_runtime"
 	"github.com/werf/werf/pkg/docker"
 	"github.com/werf/werf/pkg/image"
@@ -48,6 +49,7 @@ WARNING: Do not run this command during any other werf command is working on the
 	}
 
 	common.SetupDir(&commonCmdData, cmd)
+	common.SetupDisableDeterminism(&commonCmdData, cmd)
 	common.SetupConfigPath(&commonCmdData, cmd)
 	common.SetupConfigTemplatesDir(&commonCmdData, cmd)
 	common.SetupTmpDir(&commonCmdData, cmd)
@@ -108,7 +110,7 @@ func runPurge() error {
 	}
 	ctx = ctxWithDockerCli
 
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, true)
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}
