@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/werf/werf/pkg/config"
+	"github.com/werf/werf/pkg/git_repo"
 	"github.com/werf/werf/pkg/storage"
 
 	"github.com/werf/werf/pkg/deploy/helm"
@@ -272,7 +273,11 @@ func runRender() error {
 				return err
 			}
 
-			conveyorWithRetry := build.NewConveyorWithRetryWrapper(werfConfig, nil, projectDir, projectTmpDir, ssh_agent.SSHAuthSock, containerRuntime, storageManager, storageLockManager, conveyorOptions)
+			localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
+			if err != nil {
+				return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
+			}
+			conveyorWithRetry := build.NewConveyorWithRetryWrapper(werfConfig, localGitRepo, nil, projectDir, projectTmpDir, ssh_agent.SSHAuthSock, containerRuntime, storageManager, storageLockManager, conveyorOptions)
 			defer conveyorWithRetry.Terminate()
 
 			if err := conveyorWithRetry.WithRetryBlock(ctx, func(c *build.Conveyor) error {

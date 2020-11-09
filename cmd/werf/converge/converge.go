@@ -26,6 +26,7 @@ import (
 	"github.com/werf/werf/pkg/deploy/secret"
 	"github.com/werf/werf/pkg/deploy/werf_chart"
 	"github.com/werf/werf/pkg/docker"
+	"github.com/werf/werf/pkg/git_repo"
 	"github.com/werf/werf/pkg/image"
 	"github.com/werf/werf/pkg/ssh_agent"
 	"github.com/werf/werf/pkg/storage/manager"
@@ -273,7 +274,11 @@ func run(ctx context.Context, projectDir, chartDir string) error {
 			return err
 		}
 
-		conveyorWithRetry := build.NewConveyorWithRetryWrapper(werfConfig, nil, projectDir, projectTmpDir, ssh_agent.SSHAuthSock, containerRuntime, storageManager, storageLockManager, conveyorOptions)
+		localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
+		if err != nil {
+			return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
+		}
+		conveyorWithRetry := build.NewConveyorWithRetryWrapper(werfConfig, localGitRepo, nil, projectDir, projectTmpDir, ssh_agent.SSHAuthSock, containerRuntime, storageManager, storageLockManager, conveyorOptions)
 		defer conveyorWithRetry.Terminate()
 
 		if err := conveyorWithRetry.WithRetryBlock(ctx, func(c *build.Conveyor) error {
