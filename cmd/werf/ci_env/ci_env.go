@@ -21,6 +21,7 @@ import (
 	"github.com/werf/werf/pkg/config"
 	"github.com/werf/werf/pkg/docker"
 	"github.com/werf/werf/pkg/docker_registry"
+	"github.com/werf/werf/pkg/git_repo"
 	"github.com/werf/werf/pkg/tmp_manager"
 	"github.com/werf/werf/pkg/werf"
 )
@@ -175,7 +176,12 @@ func generateGitlabEnvs(ctx context.Context, w io.Writer, dockerConfig string) e
 				return fmt.Errorf("getting project dir failed: %s", err)
 			}
 
-			werfConfig, err := common.GetOptionalWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
+			localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
+			if err != nil {
+				return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
+			}
+
+			werfConfig, err := common.GetOptionalWerfConfig(ctx, projectDir, &commonCmdData, localGitRepo, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
 			if err != nil {
 				return fmt.Errorf("unable to load werf config: %s", err)
 			}
@@ -284,7 +290,12 @@ func generateGithubEnvs(ctx context.Context, w io.Writer, dockerConfig string) e
 			return fmt.Errorf("getting project dir failed: %s", err)
 		}
 
-		werfConfig, err := common.GetOptionalWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
+		localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
+		if err != nil {
+			return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
+		}
+
+		werfConfig, err := common.GetOptionalWerfConfig(ctx, projectDir, &commonCmdData, localGitRepo, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
 		if err != nil {
 			return fmt.Errorf("unable to load werf config: %s", err)
 		}

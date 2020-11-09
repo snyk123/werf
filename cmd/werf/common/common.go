@@ -18,7 +18,6 @@ import (
 
 	"github.com/werf/werf/pkg/build"
 	"github.com/werf/werf/pkg/build/stage"
-	"github.com/werf/werf/pkg/cleaning"
 	"github.com/werf/werf/pkg/config"
 	"github.com/werf/werf/pkg/container_runtime"
 	"github.com/werf/werf/pkg/docker_registry"
@@ -848,7 +847,7 @@ func GetSecondaryStagesStorageList(stagesStorage storage.StagesStorage, containe
 	return res, nil
 }
 
-func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
+func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, localGitRepo *git_repo.Local, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
 	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, false)
 	if err != nil {
 		return nil, err
@@ -856,13 +855,13 @@ func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdD
 
 	if werfConfigPath != "" {
 		werfConfigTemplatesDir := GetWerfConfigTemplatesDir(projectDir, cmdData)
-		return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, opts)
+		return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, localGitRepo, opts)
 	}
 
 	return nil, nil
 }
 
-func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
+func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, localGitRepo *git_repo.Local, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
 	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, true)
 	if err != nil {
 		return nil, err
@@ -870,7 +869,7 @@ func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdD
 
 	werfConfigTemplatesDir := GetWerfConfigTemplatesDir(projectDir, cmdData)
 
-	return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, opts)
+	return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, localGitRepo, opts)
 }
 
 func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool) (string, error) {
@@ -1200,7 +1199,7 @@ func SetupVirtualMergeIntoCommit(cmdData *CmdData, cmd *cobra.Command) {
 	cmd.Flags().StringVarP(cmdData.VirtualMergeIntoCommit, "virtual-merge-into-commit", "", os.Getenv("WERF_VIRTUAL_MERGE_INTO_COMMIT"), "Commit hash for virtual/ephemeral merge commit which is base for changes introduced in the pull request ($WERF_VIRTUAL_MERGE_INTO_COMMIT by default)")
 }
 
-func GetLocalGitRepoForImagesCleanup(projectDir string, cmdData *CmdData) (cleaning.GitRepo, error) {
+func GetLocalGitRepoForImagesCleanup(projectDir string, cmdData *CmdData) (*git_repo.Local, error) {
 	gitDir := filepath.Join(projectDir, ".git")
 	if exist, err := util.DirExists(gitDir); err != nil {
 		return nil, err

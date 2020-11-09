@@ -334,17 +334,6 @@ func (c *Conveyor) GetRemoteGitRepo(key string) *git_repo.Remote {
 	return c.remoteGitRepos[key]
 }
 
-//func (c *Conveyor) Init() error {
-//	localGitRepo, err := git_repo.OpenLocalRepo("own", c.projectDir)
-//	if err != nil {
-//		return fmt.Errorf("unable to open local repo %s: %s", c.projectDir, err)
-//	} else if localGitRepo != nil {
-//		c.SetLocalGitRepo(localGitRepo)
-//	}
-//
-//	return nil
-//}
-
 func (c *Conveyor) ShouldBeBuilt(ctx context.Context) error {
 	if err := c.determineStages(ctx); err != nil {
 		return err

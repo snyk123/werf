@@ -7,6 +7,7 @@ import (
 
 	"github.com/werf/werf/cmd/werf/common"
 	"github.com/werf/werf/pkg/config"
+	"github.com/werf/werf/pkg/git_repo"
 	"github.com/werf/werf/pkg/werf"
 )
 
@@ -40,7 +41,12 @@ func NewCmd() *cobra.Command {
 
 			werfConfigTemplatesDir := common.GetWerfConfigTemplatesDir(projectDir, &commonCmdData)
 
-			return config.RenderWerfConfig(common.BackgroundContext(), werfConfigPath, werfConfigTemplatesDir, args, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism})
+			localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
+			if err != nil {
+				return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
+			}
+
+			return config.RenderWerfConfig(common.BackgroundContext(), werfConfigPath, werfConfigTemplatesDir, args, localGitRepo, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism})
 		},
 	}
 

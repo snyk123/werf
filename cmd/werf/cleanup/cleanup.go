@@ -137,7 +137,12 @@ func runCleanup() error {
 	}
 	defer tmp_manager.ReleaseProjectDir(projectTmpDir)
 
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
+	localGitRepo, err := common.GetLocalGitRepoForImagesCleanup(projectDir, &commonCmdData)
+	if err != nil {
+		return err
+	}
+
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, &commonCmdData, localGitRepo, config.WerfConfigOptions{LogRenderedFilePath: true, DisableDeterminism: *commonCmdData.DisableDeterminism})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}
@@ -180,11 +185,6 @@ func runCleanup() error {
 		return err
 	}
 	logboek.Debug().LogF("Managed images names: %v\n", imagesNames)
-
-	localGitRepo, err := common.GetLocalGitRepoForImagesCleanup(projectDir, &commonCmdData)
-	if err != nil {
-		return err
-	}
 
 	kubernetesContextClients, err := common.GetKubernetesContextClients(&commonCmdData)
 	if err != nil {

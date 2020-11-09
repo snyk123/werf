@@ -142,7 +142,12 @@ func run(commonCmdData *common.CmdData, imagesToProcess []string) error {
 
 	common.ProcessLogProjectDir(commonCmdData, projectDir)
 
-	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, commonCmdData, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism, LogRenderedFilePath: true})
+	localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
+	if err != nil {
+		return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
+	}
+
+	werfConfig, err := common.GetRequiredWerfConfig(ctx, projectDir, commonCmdData, localGitRepo, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism, LogRenderedFilePath: true})
 	if err != nil {
 		return fmt.Errorf("unable to load werf config: %s", err)
 	}
@@ -210,10 +215,6 @@ func run(commonCmdData *common.CmdData, imagesToProcess []string) error {
 
 	logboek.LogOptionalLn()
 
-	localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
-	if err != nil {
-		return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
-	}
 	conveyorWithRetry := build.NewConveyorWithRetryWrapper(werfConfig, localGitRepo, imagesToProcess, projectDir, projectTmpDir, ssh_agent.SSHAuthSock, containerRuntime, storageManager, storageLockManager, conveyorOptions)
 	defer conveyorWithRetry.Terminate()
 
