@@ -891,7 +891,7 @@ func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool) (stri
 		}
 
 		if exist {
-			return werfConfigPath, nil
+			return werfConfigPathRelativeToProjectDir(projectDir, werfConfigPath)
 		}
 	}
 
@@ -904,6 +904,26 @@ func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool) (stri
 	}
 
 	return "", nil
+}
+
+func werfConfigPathRelativeToProjectDir(projectDir string, werfConfigPath string) (string, error) {
+	if !filepath.IsAbs(werfConfigPath) {
+		if absPath, err := filepath.Abs(werfConfigPath); err != nil {
+			return "", err
+		} else {
+			werfConfigPath = absPath
+		}
+	}
+
+	if !filepath.IsAbs(projectDir) {
+		if absPath, err := filepath.Abs(projectDir); err != nil {
+			return "", err
+		} else {
+			projectDir = absPath
+		}
+	}
+
+	return filepath.Rel(projectDir, werfConfigPath)
 }
 
 func GetWerfConfigTemplatesDir(projectDir string, cmdData *CmdData) string {

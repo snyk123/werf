@@ -211,10 +211,17 @@ func splitByDocs(werfConfigRenderContent string, werfConfigRenderPath string) ([
 func parseWerfConfigYaml(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string, localGitRepo *git_repo.Local, disableDeterminism bool) (string, error) {
 	// FIXME: read werf config from the git
 
-	data, err := ioutil.ReadFile(werfConfigPath)
+	commit, err := localGitRepo.HeadCommit(ctx)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to get local repo head commit: %s", err)
 	}
+
+	data, err := localGitRepo.ReadFile(commit, werfConfigPath)
+	if err != nil {
+		return "", fmt.Errorf("unable to read werf config %s from local git repo: %s", werfConfigPath, err)
+	}
+
+	// FIXME
 
 	tmpl := template.New("werfConfig")
 	tmpl.Funcs(funcMap(tmpl, disableDeterminism))

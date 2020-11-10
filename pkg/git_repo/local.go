@@ -230,3 +230,36 @@ func (repo *Local) getRepoWorkTreeCacheDir() string {
 
 	return filepath.Join(GetWorkTreeCacheDir(), "local", repoId)
 }
+
+func (repo *Local) ReadFile(commit, filePath string) ([]byte, error) {
+	return readFile(repo.Path, commit, filePath)
+}
+
+func readFile(repoPath, commit, filePath string) ([]byte, error) {
+	repository, err := git.PlainOpenWithOptions(repoPath, &git.PlainOpenOptions{EnableDotGitCommonDir: true})
+	if err != nil {
+		return nil, fmt.Errorf("cannot open repo %s: %s", repoPath, err)
+	}
+
+	commitHash, err := newHash(commit)
+	if err != nil {
+		return nil, fmt.Errorf("bad commit hash %q: %s", commit, err)
+	}
+
+	commitObj, err := repository.CommitObject(commitHash)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get commit %q object: %s", commit, err)
+	}
+
+	file, err := commitObj.File(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error getting repo file %q from commit %q: %s", filePath, commit, err)
+	}
+
+	content, err := file.Contents()
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(content), nil
+}
