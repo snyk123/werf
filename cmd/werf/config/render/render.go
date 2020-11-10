@@ -33,20 +33,22 @@ func NewCmd() *cobra.Command {
 				return fmt.Errorf("getting project dir failed: %s", err)
 			}
 
+			localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
+			if err != nil {
+				return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
+			}
+
+			configOpts := config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism}
+
 			// TODO disable logboek only for this action
-			werfConfigPath, err := common.GetWerfConfigPath(projectDir, &commonCmdData, true)
+			werfConfigPath, err := common.GetWerfConfigPath(projectDir, &commonCmdData, true, localGitRepo, configOpts)
 			if err != nil {
 				return err
 			}
 
 			werfConfigTemplatesDir := common.GetWerfConfigTemplatesDir(projectDir, &commonCmdData)
 
-			localGitRepo, err := git_repo.OpenLocalRepo("own", projectDir)
-			if err != nil {
-				return fmt.Errorf("unable to open local repo %s: %s", projectDir, err)
-			}
-
-			return config.RenderWerfConfig(common.BackgroundContext(), werfConfigPath, werfConfigTemplatesDir, args, localGitRepo, config.WerfConfigOptions{DisableDeterminism: *commonCmdData.DisableDeterminism})
+			return config.RenderWerfConfig(common.BackgroundContext(), werfConfigPath, werfConfigTemplatesDir, args, localGitRepo, configOpts)
 		},
 	}
 

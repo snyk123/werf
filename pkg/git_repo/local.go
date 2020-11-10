@@ -231,6 +231,14 @@ func (repo *Local) getRepoWorkTreeCacheDir() string {
 	return filepath.Join(GetWorkTreeCacheDir(), "local", repoId)
 }
 
+func (repo *Local) IsFileExists(commit, path string) (bool, error) {
+	panic("NO")
+}
+
+func (repo *Local) GetFilePathList(commit string) ([]string, error) {
+	panic("NO")
+}
+
 func (repo *Local) ReadFile(commit, filePath string) ([]byte, error) {
 	return readFile(repo.Path, commit, filePath)
 }

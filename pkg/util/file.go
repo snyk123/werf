@@ -2,6 +2,7 @@ package util
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -38,4 +39,28 @@ func isNotExistError(err error) bool {
 
 func IsNotADirectoryError(err error) bool {
 	return strings.HasSuffix(err.Error(), "not a directory")
+}
+
+func GetRelativeToBaseFilepath(base, path string) string {
+	if !filepath.IsAbs(path) {
+		if absPath, err := filepath.Abs(path); err != nil {
+			panic(err.Error())
+		} else {
+			path = absPath
+		}
+	}
+
+	if !filepath.IsAbs(base) {
+		if absPath, err := filepath.Abs(base); err != nil {
+			panic(err.Error())
+		} else {
+			base = absPath
+		}
+	}
+
+	if res, err := filepath.Rel(base, path); err != nil {
+		panic(err.Error())
+	} else {
+		return res
+	}
 }

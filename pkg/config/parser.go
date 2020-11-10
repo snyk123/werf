@@ -209,8 +209,6 @@ func splitByDocs(werfConfigRenderContent string, werfConfigRenderPath string) ([
 }
 
 func parseWerfConfigYaml(ctx context.Context, werfConfigPath, werfConfigTemplatesDir string, localGitRepo *git_repo.Local, disableDeterminism bool) (string, error) {
-	// FIXME: read werf config from the git
-
 	commit, err := localGitRepo.HeadCommit(ctx)
 	if err != nil {
 		return "", fmt.Errorf("unable to get local repo head commit: %s", err)
@@ -221,31 +219,52 @@ func parseWerfConfigYaml(ctx context.Context, werfConfigPath, werfConfigTemplate
 		return "", fmt.Errorf("unable to read werf config %s from local git repo: %s", werfConfigPath, err)
 	}
 
-	// FIXME
-
 	tmpl := template.New("werfConfig")
 	tmpl.Funcs(funcMap(tmpl, disableDeterminism))
 
-	werfConfigsTemplates, err := getWerfConfigTemplates(werfConfigTemplatesDir)
-	if err != nil {
-		return "", err
+	var werfConfigsTemplates []string
+
+	if disableDeterminism {
+		if templates, err := getWerfConfigTemplatesFromFilesystem(werfConfigTemplatesDir); err != nil {
+			return "", err
+		} else {
+			werfConfigsTemplates = templates
+		}
+	} else {
+		if paths, err := localGitRepo.GetFilePathList(commit); err != nil {
+			return "", fmt.Errorf("unable to get files list from local git repo: %s", err)
+		} else {
+			for _, path := range paths {
+				if _, err := filepath.Rel(werfConfigTemplatesDir, path); err == nil {
+					werfConfigsTemplates = append(werfConfigsTemplates, path)
+				}
+			}
+		}
 	}
 
-	if len(werfConfigsTemplates) != 0 {
-		for _, templatePath := range werfConfigsTemplates {
-			templateName, err := filepath.Rel(werfConfigTemplatesDir, templatePath)
-			if err != nil {
+	for _, templatePath := range werfConfigsTemplates {
+		var templateData []byte
+		if disableDeterminism {
+			if d, err := ioutil.ReadFile(templatePath); err != nil {
 				return "", err
+			} else {
+				templateData = d
 			}
+		} else {
+			if d, err := localGitRepo.ReadFile(commit, templatePath); err != nil {
+				return "", fmt.Errorf("unable to read file %s from local git repo: %s", templatePath, err)
+			} else {
+				templateData = d
+			}
+		}
 
-			var templateData []byte
-			if templateData, err = ioutil.ReadFile(templatePath); err != nil {
-				return "", err
-			}
+		templateName, err := filepath.Rel(werfConfigTemplatesDir, templatePath)
+		if err != nil {
+			return "", err
+		}
 
-			if err := addTemplate(tmpl, templateName, string(templateData)); err != nil {
-				return "", err
-			}
+		if err := addTemplate(tmpl, templateName, string(templateData)); err != nil {
+			return "", err
 		}
 	}
 
@@ -258,8 +277,6 @@ func parseWerfConfigYaml(ctx context.Context, werfConfigPath, werfConfigTemplate
 		files := files{ctx: ctx, ProjectDir: filepath.Dir(werfConfigPath)}
 		templateData = make(map[string]interface{})
 		templateData["Files"] = files
-	} else {
-		// FIXME: read files only from the git
 	}
 
 	config, err := executeTemplate(tmpl, "werfConfig", templateData)
@@ -273,7 +290,7 @@ func addTemplate(tmpl *template.Template, templateName string, templateContent s
 	return err
 }
 
-func getWerfConfigTemplates(path string) ([]string, error) {
+func getWerfConfigTemplatesFromFilesystem(path string) ([]string, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, nil
 	}

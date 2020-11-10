@@ -848,7 +848,7 @@ func GetSecondaryStagesStorageList(stagesStorage storage.StagesStorage, containe
 }
 
 func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, localGitRepo *git_repo.Local, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
-	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, false)
+	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, false, localGitRepo, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -862,7 +862,7 @@ func GetOptionalWerfConfig(ctx context.Context, projectDir string, cmdData *CmdD
 }
 
 func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdData, localGitRepo *git_repo.Local, opts config.WerfConfigOptions) (*config.WerfConfig, error) {
-	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, true)
+	werfConfigPath, err := GetWerfConfigPath(projectDir, cmdData, true, localGitRepo, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -872,7 +872,7 @@ func GetRequiredWerfConfig(ctx context.Context, projectDir string, cmdData *CmdD
 	return config.GetWerfConfig(ctx, werfConfigPath, werfConfigTemplatesDir, localGitRepo, opts)
 }
 
-func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool) (string, error) {
+func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool, localGitRepo *git_repo.Local, opts config.WerfConfigOptions) (string, error) {
 	var configPathToCheck []string
 
 	customConfigPath := *cmdData.ConfigPath
@@ -885,13 +885,24 @@ func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool) (stri
 	}
 
 	for _, werfConfigPath := range configPathToCheck {
-		exist, err := util.FileExists(werfConfigPath)
-		if err != nil {
-			return "", err
-		}
+		if opts.DisableDeterminism {
+			if exists, err := util.FileExists(werfConfigPath); err != nil {
+				return "", err
+			} else if exists {
+				return werfConfigPath, nil
+			}
+		} else {
+			commit, err := localGitRepo.HeadCommit(context.Background())
+			if err != nil {
+				return "", fmt.Errorf("unable to get local repo head commit: %s", err)
+			}
 
-		if exist {
-			return werfConfigPathRelativeToProjectDir(projectDir, werfConfigPath)
+			relPath := util.GetRelativeToBaseFilepath(projectDir, werfConfigPath)
+			if exists, err := localGitRepo.IsFileExists(commit, relPath); err != nil {
+				return "", fmt.Errorf("unable to check %s existance in the local git repo: %s", relPath, err)
+			} else if exists {
+				return relPath, nil
+			}
 		}
 	}
 
@@ -906,32 +917,12 @@ func GetWerfConfigPath(projectDir string, cmdData *CmdData, required bool) (stri
 	return "", nil
 }
 
-func werfConfigPathRelativeToProjectDir(projectDir string, werfConfigPath string) (string, error) {
-	if !filepath.IsAbs(werfConfigPath) {
-		if absPath, err := filepath.Abs(werfConfigPath); err != nil {
-			return "", err
-		} else {
-			werfConfigPath = absPath
-		}
-	}
-
-	if !filepath.IsAbs(projectDir) {
-		if absPath, err := filepath.Abs(projectDir); err != nil {
-			return "", err
-		} else {
-			projectDir = absPath
-		}
-	}
-
-	return filepath.Rel(projectDir, werfConfigPath)
-}
-
 func GetWerfConfigTemplatesDir(projectDir string, cmdData *CmdData) string {
 	customConfigTemplatesDir := *cmdData.ConfigTemplatesDir
 	if customConfigTemplatesDir != "" {
-		return customConfigTemplatesDir
+		return util.GetRelativeToBaseFilepath(projectDir, customConfigTemplatesDir)
 	} else {
-		return filepath.Join(projectDir, ".werf")
+		return util.GetRelativeToBaseFilepath(projectDir, filepath.Join(projectDir, ".werf"))
 	}
 }
 
