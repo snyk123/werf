@@ -1,10 +1,10 @@
 source "https://rubygems.org"
 
-gem "jekyll-assets"
+gem "jekyll-assets", ">= 3.0.12"
 gem "jekyll"
-gem "html-proofer"
+gem "html-proofer", ">= 3.15.3"
 gem "kramdown-parser-gfm"
 
 gem "sprockets", "~> 3.7"
-gem "nokogiri", ">= 1.10.8"
+gem "nokogiri", ">= 1.11.4"
 gem "kramdown", ">= 2.3.0"
